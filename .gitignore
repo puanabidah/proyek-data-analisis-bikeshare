@@ -1,0 +1,14 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+
+# Virtual environment folder
+venv/
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
