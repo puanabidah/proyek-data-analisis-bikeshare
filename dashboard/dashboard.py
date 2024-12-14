@@ -3,110 +3,86 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 
-# Helper Functions
-def load_and_prepare_data(filepath):
-    day_df = pd.read_csv(filepath)
-    day_df['dteday'] = pd.to_datetime(day_df['dteday'])
-    return day_df
-
-def filter_data_by_year(df, start_year, end_year):
-    return df[(df['dteday'].dt.year >= start_year) & (df['dteday'].dt.year <= end_year)]
-
-def add_year_column(df):
-    df['yr'] = df['dteday'].dt.year
-    return df
-
-def plot_line(data, x, y, hue, title, labels, figsize=(10, 6)):
-    plt.figure(figsize=figsize)
-    sns.lineplot(data=data, x=x, y=y, hue=hue, marker='o', palette='Set2')
-    plt.xticks(ticks=range(len(labels)), labels=labels, rotation=45, fontsize=10)
-    plt.title(title)
-    plt.xlabel(None)
-    plt.ylabel(None)
-    plt.legend(title=None, fontsize=10)
-    plt.grid(True)
-    st.pyplot(plt)
-
-def plot_bar(data, x, y, hue, title, labels, figsize=(8, 6)):
-    plt.figure(figsize=figsize)
-    sns.barplot(x=x, y=y, data=data, hue=hue, palette='Set2', errorbar=None)
-    plt.xticks(ticks=range(len(labels)), labels=labels, fontsize=12)
-    plt.legend(title=None, labels=year_labels, fontsize=10)
-    plt.title(title)
-    plt.xlabel(None)
-    plt.ylabel(None)
-    st.pyplot(plt)
-
-def plot_comparison_bar(data, x, y, hue, title, labels, figsize=(14, 5)):
-    fig, axes = plt.subplots(1, 2, figsize=figsize, sharey=True)
-    
-    # Plot untuk casual users
-    sns.barplot(x=x, y='casual_mean', hue=hue, data=data, errorbar=None, ax=axes[0])
-    axes[0].set_title('Pengguna Casual: Hari Kerja vs Hari Libur')  # Title untuk casual
-    axes[0].set_xlabel(None)
-    axes[0].set_ylabel(None)
-
-    # Plot untuk registered users
-    sns.barplot(x=x, y='registered_mean', hue=hue, data=data, errorbar=None, ax=axes[1])
-    axes[1].set_title('Pengguna Registered: Hari Kerja vs Hari Libur')  # Title untuk registered
-    axes[1].set_xlabel(None)
-    axes[1].set_ylabel(None)
-    
-    # Menghilangkan legend dari masing-masing plot
-    axes[0].legend_.remove()
-    axes[1].legend_.remove()
-
-    # Menambahkan legend untuk figure secara keseluruhan
-    handles, labels = axes[1].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', title='Tahun', bbox_to_anchor=(0.512, 1.05), ncol=2)
-
-    plt.tight_layout()
-    st.pyplot(fig)
-
-# Main code
 st.header('Bikeshare Dashboard 2011-2012')
 
-# List of years
+# load data
+day_df = pd.read_csv("..\data\day.csv")
+
 year_labels = ["2011", "2012"]
 
-# Load and prepare data
-day_df = load_and_prepare_data( "\main_data.csv")
+# Pastikan kolom 'dteday' bertipe datetime
+day_df['dteday'] = pd.to_datetime(day_df['dteday'])
 
-# Filter and prepare data for analysis
-filtered_df = filter_data_by_year(day_df, 2011, 2012)
-filtered_df = add_year_column(filtered_df)
+# Filter untuk tahun 2011 dan 2012
+filtered_df = day_df[(day_df['dteday'].dt.year >= 2011) & (day_df['dteday'].dt.year <= 2012)]
 
-# Agregasi berdasarkan 'weekday' dan 'year'
+# Tambahkan kolom 'year' untuk mempermudah pengelompokan
+filtered_df['yr'] = filtered_df['dteday'].dt.year
+
+# Lakukan agregasi berdasarkan 'weekday' dan 'year'
 result_weekday = (
     filtered_df.groupby(by=['weekday', 'yr'])
-    .agg({"cnt": ["sum", "mean"]})
+    .agg({
+        "cnt": ["sum", "mean"]
+    })
     .reset_index()
     .sort_values(by=('cnt', 'sum'), ascending=False)
 )
+
 result_weekday.columns = ['weekday', 'year', 'cnt_sum', 'cnt_mean']
 
-# Visualisasi Line Plot: Penggunaan Sepeda per Hari dalam Seminggu
+# Visualisasi Line Plot
 st.subheader("Rata-Rata Penggunaan Sepeda per Hari dalam Seminggu (2011-2012)")
-plot_line(result_weekday, 'weekday', 'cnt_mean', 'year', 
-          '', 
-          ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"])
 
-# Agregasi berdasarkan 'workingday' dan 'year'
+# Menyiapkan plot
+plt.figure(figsize=(10, 6))
+sns.lineplot(
+    data=result_weekday,
+    x='weekday',
+    y='cnt_mean',
+    hue='year',
+    marker='o',
+    palette='Set2'
+)
+plt.xticks(ticks=range(7), labels=["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"], rotation=45, fontsize=10)
+plt.xlabel(None)
+plt.ylabel(None)
+plt.legend(title=None, fontsize=10)
+plt.grid(True)
+
+# Menampilkan plot di Streamlit
+st.pyplot(plt)
+
+
+# agregasi berdasarkan 'weekworkday' dan 'year'
 result_workday = (
     day_df.groupby(by=['workingday', 'yr'])
-    .agg({"cnt": ["sum", "mean"]})
+    .agg({
+        "cnt": ["sum", "mean"]
+    })
     .reset_index()
     .sort_values(by=('cnt', 'sum'), ascending=False)
 )
+
 result_workday.columns = ['workingday', 'year', 'cnt_sum', 'cnt_mean']
 
-# Visualisasi Bar Plot: Penyewaan Sepeda pada Workingday
 st.subheader('Perbedaan Rata-Rata Penyewaan Sepeda pada Workingday')
-plot_bar(result_workday, 'workingday', 'cnt_mean', 'year', 
-         '', 
-         ["Hari Libur", "Hari Kerja"])
+workday_label = ["Hari Libur", "Hari Kerja"]
 
-# Agregasi berdasarkan 'workingday' dan 'year' untuk casual dan registered
+plt.figure(figsize=(8, 6))
+sns.barplot(x='workingday',
+            y='cnt_mean',
+            data=result_workday,
+            hue='year',
+            palette='Set2',
+            errorbar=None)
+plt.xticks(ticks=range(2), labels=workday_label, fontsize=12)
+plt.legend(labels=year_labels, fontsize=10)
+plt.xlabel(None)
+plt.ylabel(None)
+plt.show()
+st.pyplot(plt)
+
 result_user = filtered_df.groupby(by=['workingday', 'yr']).agg({
     'casual': ['sum', 'mean'],
     'registered': ['sum', 'mean'],
@@ -114,47 +90,104 @@ result_user = filtered_df.groupby(by=['workingday', 'yr']).agg({
 }).reset_index().sort_values(by=('cnt', 'sum'), ascending=False)
 
 result_user.columns = ['workingday', 'year', 'casual_sum', 'casual_mean', 'registered_sum', 'registered_mean', 'cnt_sum', 'cnt_mean']
+
+# Menambah kolom 'workingday_label' ke dalam DataFrame
 result_user['workingday_label'] = result_user['workingday'].map({0: "Hari Libur", 1: "Hari Kerja"})
 
-# Visualisasi perbandingan pengguna casual dan registered
-st.subheader('Perbandingan Pengguna Casual & Registered pada Hari Kerja dan Hari Libur')
-plot_comparison_bar(result_user, 'workingday_label', 'casual_mean', 'year', 
-                    '', 
-                    ["Hari Libur", "Hari Kerja"])
+# Set gaya visualisasi
+sns.set(style="whitegrid")
 
-# Agregasi berdasarkan 'season' dan 'year'
+# Persiapkan figure
+fig, axes = plt.subplots(1, 2, figsize=(14, 5), sharey=True)
+
+# Plot pengguna casual
+sns.barplot(
+    x='workingday_label',
+    y='casual_mean',
+    hue='year',
+    data=result_user,
+    errorbar=None,
+    ax=axes[0]  # Arahkan plot ke subplot pertama
+)
+axes[0].set_title('Pengguna Casual: Hari Kerja vs Hari Libur')
+axes[0].set_xlabel(None)
+axes[0].set_ylabel(None)
+
+# Plot pengguna registered
+sns.barplot(
+    x='workingday_label',
+    y='registered_mean',
+    hue='year',
+    data=result_user,
+    errorbar=None,
+    ax=axes[1]  # Arahkan plot ke subplot kedua
+)
+axes[1].set_title('Pengguna Registered: Hari Kerja vs Hari Libur')
+axes[1].set_xlabel(None)
+axes[1].set_ylabel('')  # Kosongkan karena sharey=True
+
+axes[0].legend_.remove()
+axes[1].legend_.remove()
+
+# legend untuk figure secara keseluruhan
+handles, labels = axes[1].get_legend_handles_labels()
+fig.legend(handles, labels, loc='upper center', title='Tahun', bbox_to_anchor=(0.512, 1.05), ncol=2)
+
+plt.tight_layout()
+plt.show()
+st.subheader('Perbandingan Pengguna Casual & Registered pada Hari Kerja dan Hari Libur')
+st.pyplot(plt)
+
+
 result_season = filtered_df.groupby(by=['season', 'yr']).agg({
     'cnt': ['sum', 'mean']
 }).reset_index().sort_values(by=('cnt', 'sum'), ascending=False)
 
 result_season.columns = ['season', 'year', 'cnt_sum', 'cnt_mean']
 
-# Visualisasi perbandingan Penyewaan Sepeda pada Setiap Musim
-st.subheader('Perbandingan Rata-Rata Penyewaan Sepeda pada Setiap Musim (2011-2012)')
 plt.figure(figsize=(12, 6))
-sns.barplot(x='season', y='cnt_mean', data=result_season, hue="year", errorbar=None, palette='Set2')
-plt.legend(title=None, labels=year_labels, fontsize=10)
+sns.barplot(x='season',
+            y='cnt_mean',
+            data=result_season,
+            hue="year",
+            errorbar=None,
+            palette='Set2')
+plt.legend(labels=year_labels, fontsize=10)
 plt.xlabel(None)
 plt.ylabel(None)
 plt.xticks([0, 1, 2, 3], ['Musim Semi', 'Musim Panas', 'Musim Gugur', 'Musim Dingin'])
+plt.show()
+st.subheader('Perbandingan Rata-Rata Penyewaan Sepeda pada Setiap Musim (2011-2012)')
 st.pyplot(plt)
 
-# Agregasi berdasarkan 'month' dan 'year'
+
+# Agregasi data berdasarkan 'month' dan 'year'
 monthly_trend = (
     day_df.groupby(by=['yr', 'mnth'])
-    .agg({'cnt': ['sum', 'mean']})
+    .agg({
+        'cnt': ['sum', 'mean']
+    })
     .reset_index()
 )
-monthly_trend.columns = ['year', 'month', 'cnt_sum', 'cnt_mean']
-monthly_trend['year'] = monthly_trend['year'].replace({0: 2011, 1: 2012})
 
-# Visualisasi Tren Penyewaan Sepeda per Bulan
-st.subheader('Tren Penyewaan Sepeda per Bulan (2011-2012)')
+monthly_trend.columns = ['year', 'month', 'cnt_sum', 'cnt_mean']  # Flatten multi-index kolom agar mudah digunakan
+
+monthly_trend['year'] = monthly_trend['year'].replace({0: 2011, 1: 2012})  # Ganti nilai 0 dan 1 dengan 2011 dan 2012
+
 plt.figure(figsize=(12, 6))
-sns.lineplot(data=monthly_trend, x='month', y='cnt_mean', hue='year', marker='o', palette='Set2')
-plt.xticks(range(1, 13), ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-plt.legend(title='Tahun', fontsize=10)
+sns.lineplot(
+    data=monthly_trend,
+    x='month',
+    y='cnt_mean',
+    hue='year',
+    marker='o',
+    palette='Set2'
+)
 plt.xlabel(None)
 plt.ylabel(None)
+plt.xticks(range(1, 13), ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+plt.legend(title='Year')
 plt.grid(True)
+plt.show()
+st.subheader('Tren Penyewaan Sepeda per Bulan (2011-2012)')
 st.pyplot(plt)
