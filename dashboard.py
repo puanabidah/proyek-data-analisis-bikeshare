@@ -94,14 +94,14 @@ with st.sidebar:
         "Pilih Rentang Tanggal", [min_date, max_date], min_value=min_date, max_value=max_date
     )
 
-# Filter data based on selected dates
+# Filter data berdasarkan tanggal yang dipilih
 filtered_df = filter_data_by_date(day_df, pd.Timestamp(start_date), pd.Timestamp(end_date))
 
-# Display total rentals for the selected range
+# Display total rental berdasarkan tanggal yang dipilih
 st.subheader(f"Penyewaan Sepeda dari {start_date} hingga {end_date}", divider="gray")
 total_rentals = filtered_df['cnt'].sum()
 
-# Display total casual and registered users in the selected date range
+# Display total casual dan registered user dari rentang tanggal yang dipilih
 total_casual = filtered_df['casual'].sum()
 total_registered = filtered_df['registered'].sum()
 
@@ -113,10 +113,10 @@ with col2:
 with col3:
     st.metric('Total Pengguna Registered', value=total_registered)
 
-# Plot total rentals over the selected date range
+# Plot total rental berdasarkan tanggal
 plot_total_rentals(filtered_df)
 
-# Filter and prepare data for analysis
+# Filter data by year
 filtered_df = filter_data_by_year(day_df, 2011, 2012)
 filtered_df = add_year_column(filtered_df)
 
