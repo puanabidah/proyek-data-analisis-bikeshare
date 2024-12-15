@@ -70,7 +70,7 @@ st.header('Bikeshare Dashboard 2011-2012')
 year_labels = ["2011", "2012"]
 
 # Load and prepare data
-day_df = load_and_prepare_data( "\main_data.csv")
+day_df = load_and_prepare_data( "day.csv")
 
 # Filter and prepare data for analysis
 filtered_df = filter_data_by_year(day_df, 2011, 2012)
