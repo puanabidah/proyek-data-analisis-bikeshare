@@ -12,6 +12,9 @@ def load_and_prepare_data(filepath):
 def filter_data_by_year(df, start_year, end_year):
     return df[(df['dteday'].dt.year >= start_year) & (df['dteday'].dt.year <= end_year)]
 
+def filter_data_by_date(df, start_date, end_date):
+    return df[(df['dteday'] >= start_date) & (df['dteday'] <= end_date)]
+
 def add_year_column(df):
     df['yr'] = df['dteday'].dt.year
     return df
@@ -24,6 +27,16 @@ def plot_line(data, x, y, hue, title, labels, figsize=(10, 6)):
     plt.xlabel(None)
     plt.ylabel(None)
     plt.legend(title=None, fontsize=10)
+    plt.grid(True)
+    st.pyplot(plt)
+
+def plot_total_rentals(data):
+    plt.figure(figsize=(12, 6))
+    sns.lineplot(data=data, x='dteday', y='cnt', marker='o', color='blue')
+    plt.title('Total Penyewaan Sepeda Harian')
+    plt.xlabel(None)
+    plt.ylabel(None)
+    plt.xticks(rotation=45)
     plt.grid(True)
     st.pyplot(plt)
 
@@ -64,13 +77,44 @@ def plot_comparison_bar(data, x, y, hue, title, labels, figsize=(14, 5)):
     st.pyplot(fig)
 
 # Main code
-st.header('Bikeshare Dashboard 2011-2012')
+st.title(":blue[Bikeshare Dashboard] 📊")
 
 # List of years
 year_labels = ["2011", "2012"]
 
 # Load and prepare data
 day_df = load_and_prepare_data( "day.csv")
+
+# Sidebar: Filter by Date
+with st.sidebar:
+    st.header("Filter Bikeshare Data 📆")
+    min_date = day_df['dteday'].min()
+    max_date = day_df['dteday'].max()
+    start_date, end_date = st.date_input(
+        "Pilih Rentang Tanggal", [min_date, max_date], min_value=min_date, max_value=max_date
+    )
+
+# Filter data based on selected dates
+filtered_df = filter_data_by_date(day_df, pd.Timestamp(start_date), pd.Timestamp(end_date))
+
+# Display total rentals for the selected range
+st.subheader(f"Penyewaan Sepeda dari {start_date} hingga {end_date}", divider="gray")
+total_rentals = filtered_df['cnt'].sum()
+
+# Display total casual and registered users in the selected date range
+total_casual = filtered_df['casual'].sum()
+total_registered = filtered_df['registered'].sum()
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total Penyewaan", value=total_rentals)
+with col2:
+    st.metric('Total Pengguna Casual', value=total_casual)
+with col3:
+    st.metric('Total Pengguna Registered', value=total_registered)
+
+# Plot total rentals over the selected date range
+plot_total_rentals(filtered_df)
 
 # Filter and prepare data for analysis
 filtered_df = filter_data_by_year(day_df, 2011, 2012)
